@@ -45,6 +45,36 @@ const ContainerGenerator: Fig.Generator = {
   },
 };
 
+// Dns Domain Generator
+const DnsDomainGenerator: Fig.Generator = {
+  script: ["container", "system", "dns", "list"],
+  postProcess: (out) => {
+    return out.split("\n").map((domain) => ({
+      name: domain,
+      description: "DNS Domain",
+      icon: "fig://icon?type=string",
+    }));
+  },
+};
+
+// Network Generator
+const NetworkGenerator: Fig.Generator = {
+  script: ["container", "network", "ls", "--format", "json"],
+  postProcess: (out) => {
+    try {
+      const networks = JSON.parse(out);
+      return networks.map((network) => ({
+        name: network.id,
+        icon: "fig://icon?type=string",
+        description: `${network.state} - ${network.status?.address || "N/A"} (${network.config?.mode || "unknown"})`,
+      }));
+    } catch (error) {
+      // Fallback to empty array if JSON parsing fails
+      return [];
+    }
+  },
+};
+
 const containerSubcommands: Fig.Subcommand[] = [
   {
     name: "create",
@@ -1352,6 +1382,7 @@ const otherSubcommands: Fig.Subcommand[] = [
           name: "network-names",
           description: "Network names",
           isVariadic: true,
+          generators: NetworkGenerator,
         },
         options: [
           {
@@ -1395,6 +1426,7 @@ const otherSubcommands: Fig.Subcommand[] = [
           name: "networks",
           description: "Networks to inspect",
           isVariadic: true,
+          generators: NetworkGenerator,
         },
         options: [
           {
@@ -1429,6 +1461,8 @@ const otherSubcommands: Fig.Subcommand[] = [
             args: {
               name: "domain-name",
               description: "The local domain name",
+              isVariadic: true,
+              generators: DnsDomainGenerator,
             },
           },
           {
@@ -1446,6 +1480,7 @@ const otherSubcommands: Fig.Subcommand[] = [
                   name: "domain-name",
                   description:
                     "The default `--domain-name` to use for the `create` or `run` command",
+                  generators: DnsDomainGenerator,
                 },
               },
               {
